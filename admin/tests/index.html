@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Client</title>
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="page-header">
+        <div class="page-title">Resonant</div>
+        <div class="page-subtitle">Suite de pruebas de administración</div>
+      </header>
+      <div class="card" id="connectView">
+        <h1>Conexión</h1>
+        <div class="row" id="tokenRow" style="display: none;">
+          <input id="tokenInput" placeholder="Token" />
+          <button id="tokenApplyBtn" class="active">Usar token</button>
+        </div>
+        <div class="row">
+          <button id="connectBtn" class="active">Conectar</button>
+        </div>
+        <div class="row">
+          <select id="micSelect"></select>
+          <button id="micTestBtn">Probar micrófono</button>
+        </div>
+        <div class="meter">
+          <div class="meter-fill" id="micLevelFill"></div>
+        </div>
+        <div class="status" id="status">Esperando token...</div>
+      </div>
+
+      <div class="card" id="adminCard">
+        <div class="title">
+          <div>
+            <div class="name">Admin</div>
+            <div class="subtle">Acceso a suite de pruebas</div>
+          </div>
+          <div class="pill pill-warn" id="adminStatus">Sin sesión</div>
+        </div>
+        <div class="row">
+          <input id="toolsUsername" placeholder="Usuario" />
+          <input id="toolsPassword" type="password" placeholder="Contraseña" />
+          <button id="toolsLoginBtn" class="active">Ingresar</button>
+        </div>
+        <div class="status" id="toolsOutput"></div>
+      </div>
+
+      <div class="card" id="toolsCard">
+        <div class="title">
+          <div>
+            <div class="name">Suite de pruebas</div>
+            <div class="subtle">Audio, voz y red</div>
+          </div>
+          <div class="pill pill-warn" id="toolsStatus">Sin sesión</div>
+        </div>
+        <div class="row">
+          <button id="toolsAudioOutBtn">Probar salida</button>
+          <button id="toolsVoiceLoopBtn">Probar voz</button>
+          <button id="toolsNetBtn">Test de red</button>
+          <button id="toolsLogoutBtn" class="muted">Salir</button>
+        </div>
+        <div class="status" id="toolsSuiteOutput"></div>
+      </div>
+
+      <div class="card hidden" id="connectedView">
+        <div class="title">
+          <div>
+            <div class="name">Conectado</div>
+            <div class="subtle" id="rangeInfo"></div>
+          </div>
+          <div class="pill pill-ok" id="peers">Jugadores: 0</div>
+        </div>
+        <div class="row">
+          <button id="muteBtn" class="muted">Mute</button>
+          <button id="deafenBtn" class="muted">Deafen</button>
+        </div>
+        <ul class="list" id="peersList"></ul>
+      </div>
+    </div>
+    <div class="toast-container" id="toastContainer"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
