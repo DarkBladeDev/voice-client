@@ -20,7 +20,7 @@ import { createAudioController } from './audio.js';
 import { createPeerRenderer } from './peers.js';
 import { createMediaClient } from './media.js';
 import { createSessionStore } from './session-store.js';
-import { createWsClient } from './ws-client.js';
+import { createWsClient } from './websocket_client.js';
 
 function uuidFallback() {
   if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
