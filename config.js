@@ -7,12 +7,15 @@ export function getConfig() {
   const isAdmin = normalizedPath === '/admin';
   const isAdminTests = normalizedPath === '/admin/tests';
   const authCode = params.get('code');
-  const defaultWsHost = window.location.hostname || 'localhost';
+  const defaultWsHost = window.location.host || window.location.hostname || 'localhost';
   const pageProtocol = window.location.protocol;
+  const useStandardPorts = pageProtocol === 'http:' || pageProtocol === 'https:';
   const defaultWsProtocol = pageProtocol === 'https:' ? 'wss' : 'ws';
-  const wsUrl = params.get('ws') || `${defaultWsProtocol}://${defaultWsHost}:3000/ws`;
-  const httpBase = params.get('http') || ((pageProtocol === 'http:' || pageProtocol === 'https:')
-    ? `${pageProtocol}//${defaultWsHost}:3000`
+  const wsUrl = params.get('ws') || (useStandardPorts
+    ? `${defaultWsProtocol}://${defaultWsHost}/ws`
+    : `ws://${defaultWsHost}:3000/ws`);
+  const httpBase = params.get('http') || (useStandardPorts
+    ? `${pageProtocol}//${defaultWsHost}`
     : `http://${defaultWsHost}:3000`);
   let maxDistance = Number(params.get('range') || 48);
   if (!Number.isFinite(maxDistance) || maxDistance <= 0) {
