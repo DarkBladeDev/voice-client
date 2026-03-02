@@ -1,7 +1,9 @@
 export function createWsClient({ wsUrl, createUuid, onMessage, onClose, onError }) {
   let ws;
   const pending = new Map();
+  // Maximum time (ms) to wait for a response to a request before rejecting with 'timeout'
   const REQUEST_TIMEOUT_MS = 20000;
+  // Maximum time (ms) to wait for the WebSocket connection to open before rejecting with 'open_timeout'
   const OPEN_TIMEOUT_MS = 8000;
 
   function isOpen() {
