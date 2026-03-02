@@ -337,6 +337,7 @@ async function connect() {
   } catch (err) {
     setStatus('Token inválido o expirado');
     setConnectedView(false);
+    console.error(err);
     return;
   }
   await mediaClient.initDevice(joined.rtpCapabilities);
