@@ -2,6 +2,7 @@ export function createWsClient({ wsUrl, createUuid, onMessage, onClose, onError 
   let ws;
   const pending = new Map();
   const REQUEST_TIMEOUT_MS = 8000;
+  const OPEN_TIMEOUT_MS = 8000;
 
   function isOpen() {
     return ws && ws.readyState === WebSocket.OPEN;
@@ -66,7 +67,50 @@ export function createWsClient({ wsUrl, createUuid, onMessage, onClose, onError 
         onError();
       }
     };
-    await new Promise((resolve) => ws.addEventListener('open', resolve));
+    await new Promise((resolve, reject) => {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(new Error('open_timeout'));
+      }, OPEN_TIMEOUT_MS);
+      const handleOpen = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve();
+      };
+      const handleClose = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(new Error('closed'));
+      };
+      const handleError = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(new Error('ws_error'));
+      };
+      const cleanup = () => {
+        clearTimeout(timeoutId);
+        ws.removeEventListener('open', handleOpen);
+        ws.removeEventListener('close', handleClose);
+        ws.removeEventListener('error', handleError);
+      };
+      ws.addEventListener('open', handleOpen);
+      ws.addEventListener('close', handleClose);
+      ws.addEventListener('error', handleError);
+    });
   }
 
   function close() {

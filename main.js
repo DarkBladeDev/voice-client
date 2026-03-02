@@ -327,7 +327,17 @@ async function connect() {
     return;
   }
   setStatus('Conectando...');
-  await wsClient.open();
+  try {
+    await wsClient.open();
+  } catch (err) {
+    if (err && err.message === 'open_timeout') {
+      setStatus('Tiempo de espera agotado');
+    } else {
+      setStatus('No se pudo conectar');
+    }
+    setConnectedView(false);
+    return;
+  }
   wsClient.send({ type: 'auth', token });
   sessionStore.setSelfUuid(parseTokenSubject(token));
 
@@ -335,9 +345,17 @@ async function connect() {
   try {
     joined = await wsClient.request('join');
   } catch (err) {
-    setStatus('Token inválido o expirado');
+    if (err && (err.message === 'closed' || err.message === 'ws_closed')) {
+      setStatus('Conexión cerrada');
+    } else if (err && err.message === 'timeout') {
+      setStatus('Tiempo de espera agotado');
+    } else {
+      setStatus('Token inválido o expirado');
+    }
     setConnectedView(false);
-    console.error(err);
+    if (!err || !['closed', 'ws_closed', 'timeout'].includes(err.message)) {
+      console.error(err);
+    }
     return;
   }
   await mediaClient.initDevice(joined.rtpCapabilities);
