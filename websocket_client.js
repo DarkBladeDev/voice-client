@@ -1,7 +1,7 @@
 export function createWsClient({ wsUrl, createUuid, onMessage, onClose, onError }) {
   let ws;
   const pending = new Map();
-  const REQUEST_TIMEOUT_MS = 8000;
+  const REQUEST_TIMEOUT_MS = 20000;
   const OPEN_TIMEOUT_MS = 8000;
 
   function isOpen() {
