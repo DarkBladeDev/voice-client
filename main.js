@@ -302,7 +302,12 @@ async function connect() {
   try {
     await sessionClient.ensureSession();
   } catch (err) {
-    if (err && err.message === 'active_session') {
+    if (err && err.message === 'invalid_token') {
+      setStatus('Token inválido o expirado');
+      setTokenRowVisible(true);
+    } else if (err && err.message === 'rate_limited') {
+      setStatus('Límite de intentos alcanzado');
+    } else if (err && err.message === 'active_session') {
       setStatus('Ya tienes una sesión activa en otro dispositivo o instancia');
     } else {
       setStatus('No se pudo iniciar sesión');
