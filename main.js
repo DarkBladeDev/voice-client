@@ -49,6 +49,34 @@ const authCode = config.authCode;
 const wsUrl = config.wsUrl;
 const httpBase = config.httpBase;
 let maxDistance = config.maxDistance;
+const debug = config.debug;
+
+function createLogger(enabled) {
+  const prefix = '[voice-client]';
+  const log = (level, ...args) => {
+    if (!enabled) {
+      return;
+    }
+    const method = console[level] ? level : 'log';
+    console[method](prefix, ...args);
+  };
+  return {
+    debug: (...args) => log('debug', ...args),
+    info: (...args) => log('info', ...args),
+    warn: (...args) => log('warn', ...args),
+    error: (...args) => log('error', ...args)
+  };
+}
+
+const logger = createLogger(debug);
+logger.info('config', {
+  wsUrl,
+  httpBase,
+  isAdmin,
+  isAdminTests,
+  hasToken: Boolean(config.token),
+  maxDistance
+});
 
 let audioTrack;
 let muted = false;
@@ -190,17 +218,20 @@ wsClient = createWsClient({
   wsUrl,
   createUuid,
   onMessage,
-  onClose: () => {
+  onClose: (event) => {
+    logger.warn('ws_closed', { code: event?.code, reason: event?.reason, wasClean: event?.wasClean });
     setStatus('Conexión cerrada');
     setConnectedView(false);
     peerRenderer.resetPeers();
     stopPingLoop();
   },
-  onError: () => {
+  onError: (event) => {
+    logger.error('ws_error', { type: event?.type });
     setStatus('Error de conexión');
     setConnectedView(false);
     stopPingLoop();
-  }
+  },
+  logger
 });
 
 mediaClient = createMediaClient({
@@ -213,6 +244,7 @@ mediaClient = createMediaClient({
 });
 
 function onMessage(message) {
+  logger.debug('ws_message_handled', { type: message?.type });
   if (message.type === 'authed' && message.uuid) {
     sessionStore.setSelfUuid(message.uuid);
     return;
@@ -268,6 +300,7 @@ function onMessage(message) {
     applyModerationState(message.state);
   }
   if (message.type === 'sessionDenied' && message.reason === 'active_session') {
+    logger.warn('session_denied', { reason: message.reason });
     setStatus('Ya tienes una sesión activa en otro dispositivo o instancia');
     setConnectedView(false);
     stopPingLoop();
@@ -286,6 +319,7 @@ function startPingLoop(intervalMs = 10000) {
       const pingMs = Date.now() - sentAt;
       wsClient.send({ type: 'pingReport', pingMs });
     } catch (err) {
+      logger.debug('ping_failed', { message: err?.message });
     }
   }, intervalMs);
 }
@@ -299,9 +333,13 @@ function stopPingLoop() {
 
 async function connect() {
   stopPingLoop();
+  logger.info('connect_start');
   try {
+    const sessionStart = performance.now();
     await sessionClient.ensureSession();
+    logger.info('session_ready', { ms: Math.round(performance.now() - sessionStart) });
   } catch (err) {
+    logger.warn('session_failed', { message: err?.message });
     if (err && err.message === 'invalid_token') {
       setStatus('Token inválido o expirado');
       setTokenRowVisible(true);
@@ -327,14 +365,18 @@ async function connect() {
   }
   const token = sessionStore.getToken();
   if (!token) {
+    logger.warn('token_missing');
     setStatus('Token faltante');
     setTokenRowVisible(true);
     return;
   }
   setStatus('Conectando...');
   try {
+    const openStart = performance.now();
     await wsClient.open();
+    logger.info('ws_ready', { ms: Math.round(performance.now() - openStart) });
   } catch (err) {
+    logger.warn('ws_open_failed', { message: err?.message });
     if (err && err.message === 'open_timeout') {
       setStatus('Tiempo de espera agotado');
     } else {
@@ -344,12 +386,16 @@ async function connect() {
     return;
   }
   wsClient.send({ type: 'auth', token });
+  logger.debug('ws_auth_sent');
   sessionStore.setSelfUuid(parseTokenSubject(token));
 
   let joined;
   try {
+    const joinStart = performance.now();
     joined = await wsClient.request('join');
+    logger.info('join_ok', { ms: Math.round(performance.now() - joinStart) });
   } catch (err) {
+    logger.warn('join_failed', { message: err?.message });
     if (err && (err.message === 'closed' || err.message === 'ws_closed')) {
       setStatus('Conexión cerrada');
     } else if (err && err.message === 'timeout') {
@@ -359,25 +405,32 @@ async function connect() {
     }
     setConnectedView(false);
     if (!err || !['closed', 'ws_closed', 'timeout'].includes(err.message)) {
-      console.error(err);
+      logger.error('join_error', { message: err?.message });
     }
     return;
   }
+  logger.debug('rtp_capabilities_ready');
   await mediaClient.initDevice(joined.rtpCapabilities);
+  logger.debug('transports_create_start');
   await mediaClient.createTransports();
+  logger.debug('transports_create_done');
 
   audioController.stopMicTest();
   if (!navigator.mediaDevices?.getUserMedia) {
+    logger.warn('mic_unavailable');
     setStatus('Micrófono no disponible en este navegador');
     setConnectedView(false);
     return;
   }
+  logger.debug('mic_track_create_start', { deviceId: ui.micSelect?.value || '' });
   const audioInput = await audioController.createAudioTrack(ui.micSelect?.value || '');
   audioTrack = audioInput.track;
   applyMuteState();
   await mediaClient.produceTrack(audioTrack);
+  logger.debug('mic_track_produced');
 
   const producers = await wsClient.request('getProducers');
+  logger.debug('producers_received', { count: producers?.producers?.length || 0 });
   for (const producer of producers.producers) {
     if (producer.uuid) {
       producerMap.set(producer.producerId, producer.uuid);
@@ -390,6 +443,7 @@ async function connect() {
   sessionClient.scheduleRefresh();
   sessionClient.scheduleValidation();
   startPingLoop();
+  logger.info('connect_ready');
 }
 
 function parseTokenSubject(tokenValue) {

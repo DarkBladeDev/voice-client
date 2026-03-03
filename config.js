@@ -7,6 +7,8 @@ export function getConfig() {
   const isAdmin = normalizedPath === '/admin';
   const isAdminTests = normalizedPath === '/admin/tests';
   const authCode = params.get('code');
+  const debugParam = (params.get('debug') || '').toLowerCase();
+  const debug = debugParam === '1' || debugParam === 'true' || debugParam === 'yes' || debugParam === 'on';
   const rawHost = window.location.host || window.location.hostname || 'localhost';
   const rawHostname = window.location.hostname || rawHost;
   const rawPort = window.location.port;
@@ -34,6 +36,7 @@ export function getConfig() {
     authCode,
     wsUrl,
     httpBase,
-    maxDistance
+    maxDistance,
+    debug
   };
 }
